@@ -69,7 +69,7 @@ extern "C" {
 // DEFINES
 //------------------------------------------------------------------------------
 #define FW_REV "1.1.0"
-#define FW_DATE "@ 20230913"
+#define FW_DATE "@ 20231004"
 #define HW_MODELO "SPXR3 FRTOS R001 HW:XMEGA256A3B"
 #define FRTOS_VERSION "FW:FreeRTOS V202111.00"
 #define FW_TYPE "SPXR3"

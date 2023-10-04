@@ -160,7 +160,7 @@ int i;
 	xSemaphoreGive( sem_STDOUT );
     
     if ( fd == fdRS485A ) {
-        vTaskDelay( ( TickType_t)( 5 ) );
+       vTaskDelay( ( TickType_t)( 10 ) );
        CLEAR_RTS_RS485A();
     }
     

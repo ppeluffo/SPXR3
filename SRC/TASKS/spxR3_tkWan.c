@@ -261,13 +261,13 @@ static void wan_state_online_config(void)
     wan_process_frame_configAinputs();
     wan_process_frame_configCounters();
     wan_process_frame_configPiloto();
-    //wan_process_frame_configConsigna();
+    wan_process_frame_configConsigna();
     
     // Con todos los modulos configurados, los recargo
     ainputs_read_local_config(&systemConf.ainputs_conf);
     counters_read_local_config(&systemConf.counters_conf);
     piloto_read_local_config(&systemConf.piloto_conf);
-    //consigna_read_local_config(&systemConf.consigna_conf);
+    consigna_read_local_config(&systemConf.consigna_conf);
 
     save_config_in_NVM();    
     wan_state = WAN_ONLINE_DATA;
@@ -411,7 +411,6 @@ bool retS = false;
     // Proceso
     tryes = 6;
     while (tryes-- > 0) {
-        
         wan_xmit_out(DEBUG_WAN);
     
         // Espero respuesta chequeando cada 1s durante 15s.
