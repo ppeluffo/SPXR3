@@ -14,6 +14,8 @@ static void cmdConfigFunction(void);
 static void pv_snprintfP_OK(void );
 static void pv_snprintfP_ERR(void );
 
+#define T_SLEEPING  30000
+#define T_AWAKE     1000
 //------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
 {
@@ -26,6 +28,9 @@ void tkCmd(void * pvParameters)
         vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
 
 uint8_t c = 0;
+int16_t awake_counter;
+bool sleeping;
+
 
     FRTOS_CMD_init();
 
@@ -41,6 +46,9 @@ uint8_t c = 0;
     xprintf_P(PSTR("Starting tkCmd..\r\n" ));
     xprintf_P(PSTR("Spymovil %s %s %s %s \r\n") , HW_MODELO, FRTOS_VERSION, FW_REV, FW_DATE);
        
+    awake_counter = T_AWAKE;   
+    sleeping = false;
+    
 	// loop
 	for( ;; )
 	{
@@ -50,10 +58,26 @@ uint8_t c = 0;
 		//while ( frtos_read( fdTERM, (char *)&c, 1 ) == 1 ) {
         while ( xgetc( (char *)&c ) == 1 ) {
             FRTOS_CMD_process(c);
+            awake_counter = T_AWAKE;    // Reinicio c/tecla apretada
         }
         
-        // Espero 10ms si no hay caracteres en el buffer
-        vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
+        if ( awake_counter > 0 ) {
+            awake_counter--;
+            sleeping = false;
+            if ( awake_counter == 1 ) {
+                xprintf_P(PSTR("tkCmd going to sleep..\r\n" ));
+            }
+        } else {
+            sleeping = true;
+        }
+        
+        if ( sleeping ) {
+            vTaskDelay( ( TickType_t)( T_SLEEPING / portTICK_PERIOD_MS ) ); 
+            //vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );   
+        } else {
+            // Espero 10ms si no hay caracteres en el buffer
+            vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );    
+        }
                
 	}    
 }
@@ -61,9 +85,39 @@ uint8_t c = 0;
 static void cmdTestFunction(void)
 {
 
+    
+char localStr[48] = { '\0' };
+char *stringp = NULL;
+char *tk_enable = NULL;
+char *tk_diurna = NULL;
+char *tk_nocturna = NULL;
+char *delim = "&,;:=><";
+
     FRTOS_CMD_makeArgv();
 
+    if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA"))  ) { 
+        strncpy(localStr, "ENABLE=TRUE&DIURNA=730&NOCTURNA=2345</html>", sizeof(localStr));
+        xprintf_P(PSTR("CONSIGNA DEBUG: localStr=[%s]\r\n"), localStr);
+        stringp = &localStr[0];
+        xprintf_P(PSTR("CONSIGNA DEBUG: stringp=[%s]\r\n"), stringp);
+        tk_enable = strsep(&stringp,delim);	 	// ENABLE
+        tk_enable = strsep(&stringp,delim);	 	// TRUE/FALSE      
+        xprintf_P(PSTR("CONSIGNA DEBUG: tkenable1=[%s]\r\n"),tk_enable);
+        
+        tk_diurna = strsep(&stringp,delim);	 	
+        tk_diurna = strsep(&stringp,delim);	 	  
+        xprintf_P(PSTR("CONSIGNA DEBUG: diurna=[%s]\r\n"),tk_diurna);
+        
+        tk_nocturna = strsep(&stringp,delim);	 	
+        tk_nocturna = strsep(&stringp,delim);	 	  
+        xprintf_P(PSTR("CONSIGNA DEBUG: tk_nocturna=[%s]\r\n"),tk_nocturna);
+        
+        consigna_config( tk_enable, tk_diurna, tk_nocturna);
+        
+    }
+    
     if (!strcmp_P( strupr(argv[1]), PSTR("KILL"))  ) {
+                
         if (!strcmp_P( strupr(argv[2]), PSTR("WAN"))  ) { 
             WAN_kill_task();
             return;
@@ -274,12 +328,12 @@ static void cmdReadFunction(void)
 	// read cnt
 	if (!strcmp_P( strupr(argv[1]), PSTR("CNT")) ) {
         if ( atoi(argv[2]) == 0 ) {
-            xprintf_P(PSTR("CNT0=%d\r\n"), CNT0_read());
+            xprintf_P(PSTR("CNT0=%d\r\n"), CNT0_pin_read());
             pv_snprintfP_OK();
             return;
         }
         if ( atoi(argv[2]) == 1 ) {
-            xprintf_P(PSTR("CNT1=%d\r\n"), CNT1_read());
+            xprintf_P(PSTR("CNT1=%d\r\n"), CNT1_pin_read());
             pv_snprintfP_OK();
             return;
         }
@@ -500,9 +554,10 @@ static void cmdConfigFunction(void)
     FRTOS_CMD_makeArgv();
     
     // CONSIGNA
-    // config consigna enable {true|false| hhmm_diurna hhmm_nocturna
+    // config consigna {true|false| hhmm_diurna hhmm_nocturna
     if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA"))) {
         consigna_config( argv[2], argv[3], argv[4]) ? pv_snprintfP_OK() : pv_snprintfP_ERR();
+        return;
     }
     
     // DLGID

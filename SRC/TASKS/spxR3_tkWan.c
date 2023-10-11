@@ -62,6 +62,8 @@ void wan_APAGAR_MODEM(void);
 
 bool f_inicio;
 
+bool wan_sleeping;
+
 static bool wan_check_response ( const char *s);
 static void wan_xmit_out(bool debug_flag );
 static void wan_print_RXbuffer(void);
@@ -88,6 +90,7 @@ void tkWAN(void * pvParameters)
     wan_state = WAN_APAGADO;
     f_inicio = true;
     link_up4data = false;
+    wan_sleeping = false;
     
 	// loop
 	for( ;; )
@@ -167,6 +170,8 @@ BaseType_t xResult;
         //xprintf_P(PSTR("WAN:: DEBUG: pwrmodo discreto. Sleep %d secs.\r\n"), sleep_ticks );
         sleep_ticks /= 60;  // paso a minutos
         // Duermo
+        wan_sleeping = true;
+        xprintf_P(PSTR("tkWan going to sleep..\r\n" ));
         while ( sleep_ticks-- > 0) {
             //kick_wdt(XWAN_WDG_bp);
             // Espero de a 1 min para poder entrar en tickless.
@@ -184,6 +189,7 @@ BaseType_t xResult;
     
 exit:
     
+    wan_sleeping = false;
     wan_PRENDER_MODEM();
     wan_state = WAN_OFFLINE;
     return;
@@ -834,6 +840,8 @@ bool retS = false;
 			tk_mMax = strsep(&stringp,delim);		//mMax
 			tk_offset = strsep(&stringp,delim);		//offset
 
+            //xprintf_P(PSTR("DEBUG_AINPUT: %d [%s][%s][%s][%s][%s]\r\n"), ch, tk_enable, tk_name , tk_iMin, tk_iMax, tk_mMin );
+            
 			ainputs_config_channel( ch, tk_enable, tk_name , tk_iMin, tk_iMax, tk_mMin, tk_mMax, tk_offset );
 			xprintf_P( PSTR("WAN:: Reconfig A%d\r\n"), ch);
 		}
@@ -960,7 +968,8 @@ bool retS = false;
             tk_rbsize = strsep(&stringp,delim);     //rbsize
 
             //xprintf_P(PSTR("DEBUG: ch=%d,enable=%s,name=%s magpp=%s,modo=%s,rbsize=%s\r\n"), ch, tk_enable, tk_name, tk_magpp, tk_modo, tk_rbsize);
-			counters_config_channel( ch , tk_enable, tk_name , tk_magpp, tk_modo, tk_rbsize );         
+			
+            counters_config_channel( ch , tk_enable, tk_name , tk_magpp, tk_modo, tk_rbsize );         
 			xprintf_P( PSTR("WAN:: Reconfig C%d\r\n"), ch);
 		}
 	}
@@ -1078,6 +1087,8 @@ bool retS = false;
         tk_enable = strsep(&stringp,delim);	 	// ENABLE
         tk_enable = strsep(&stringp,delim);	 	// TRUE/FALSE
         piloto_config_enable(tk_enable);
+        
+        //xprintf_P(PSTR("DEBUG_PILOTO enable=[%s]\r\n"),tk_enable);
         xprintf_P( PSTR("WAN:: Reconfig PILOTO ENABLE to %s\r\n"), tk_enable );
     }
 
@@ -1090,6 +1101,7 @@ bool retS = false;
         tk_pulsexrev = strsep(&stringp,delim);	 	// PULSEXREV
         tk_pulsexrev = strsep(&stringp,delim);	 	// 1500
         piloto_config_pulseXrev(tk_pulsexrev);
+        //xprintf_P(PSTR("DEBUG_PILOTO tk_pulsexreve=[%s]\r\n"),tk_pulsexrev);
         xprintf_P( PSTR("WAN:: Reconfig PILOTO PULSEXREV to %s\r\n"), tk_pulsexrev );
     }
     
@@ -1202,15 +1214,14 @@ static bool wan_process_rsp_configConsigna(void)
      *                          CLASS:CONF_CONSIGNA;CONFIG:OK
      * 
      */
-
-    
+  
+char localStr[64] = { 0 };
+char *token = NULL;
+char *tk_enable = NULL;
+char *tk_diurna = NULL;
+char *tk_nocturna = NULL;
+char *delim = "<>/&=";
 char *ts = NULL;
-char localStr[48] = { 0 };
-char *stringp = NULL;
-char *tk_enable= NULL;
-char *tk_diurna= NULL;
-char *tk_nocturna= NULL;
-char *delim = "&,;:=><";
 char *p;
 bool retS = false;
 
@@ -1220,40 +1231,41 @@ bool retS = false;
         retS = true;
        goto exit_;
     }
-
+     
+    if  ( strstr( p, "CONFIG=ERROR") != NULL ) {
+        xprintf_P(PSTR("WAN:: CONF ERROR !!\r\n"));
+        retS = false;
+        goto exit_;    
+    }
+         
     vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
-    memset(localStr,'\0',sizeof(localStr));
+	memset(localStr,'\0',sizeof(localStr));
 	ts = strstr( p, "ENABLE=");
     if  ( ts != NULL ) {
         strncpy(localStr, ts, sizeof(localStr));
-        stringp = localStr;
-        tk_enable = strsep(&stringp,delim);	 	// ENABLE
-        tk_enable = strsep(&stringp,delim);	 	// TRUE/FALSE
+        token = strtok (localStr, delim);       
+        while ( token != NULL ) {
+            //xprintf_P(PSTR("TOK=%s\r\n"), token ); //printing each token
+            if (strstr(token,"ENABLE") != NULL ) {
+                token = strtok(NULL, delim); 
+                tk_enable = token;
+                continue;
+            } else if (strstr(token,"DIURNA") != NULL ) {
+                token = strtok(NULL, delim); 
+                tk_diurna = token;
+                continue;
+            } else if (strstr(token,"NOCTURNA") != NULL ) {
+                token = strtok(NULL, delim); 
+                tk_nocturna = token;
+                continue;
+            }
+            token = strtok(NULL, delim);
+        }
+	 	// 
     }
-
-    vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
-    memset(localStr,'\0',sizeof(localStr));
-	ts = strstr( p, "DIURNA=");
-    if  ( ts != NULL ) {
-        strncpy(localStr, ts, sizeof(localStr));
-        stringp = localStr;
-        tk_diurna = strsep(&stringp,delim);	 	// DIURNA
-        tk_diurna = strsep(&stringp,delim);	 	// 1500
-    }
-    
-    vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
-    memset(localStr,'\0',sizeof(localStr));
-	ts = strstr( p, "NOCTURNA=");
-    if  ( ts != NULL ) {
-        strncpy(localStr, ts, sizeof(localStr));
-        stringp = localStr;
-        tk_nocturna = strsep(&stringp,delim);	 	
-        tk_nocturna = strsep(&stringp,delim);	 	
-    }
-    
-    consigna_config( tk_enable, tk_diurna, tk_nocturna);
-    
-	xprintf_P( PSTR("WAN:: Reconfig CONSIGNA\r\n"));
+    //xprintf_P( PSTR("WAN:: Reconfig CONSIGNA to: %s,%s,%s\r\n"), tk_enable, tk_diurna, tk_nocturna);
+    xprintf_P( PSTR("WAN:: Reconfig CONSIGNA\r\n"));
+    consigna_config( tk_enable, tk_diurna, tk_nocturna );
     retS = true;
    
 exit_:
@@ -1641,3 +1653,8 @@ void WAN_kill_task(void)
     }
 }
 //------------------------------------------------------------------------------        
+bool WAN_sleeping(void)
+{
+    return (wan_sleeping);
+}
+//------------------------------------------------------------------------------  

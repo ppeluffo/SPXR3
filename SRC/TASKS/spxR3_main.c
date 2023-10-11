@@ -3,6 +3,21 @@
  * Author: pablo
  *
  * Created on August 23, 2023, 4:32 PM
+ * 
+ * CONSUMOS:
+ * 1- Solo tk_ctl ( 5 secs ) y tk_cmd.
+ *    - Con programador: 25mA
+ *    - Sin programador/con USB: 19mA
+ *    - Sin programador/sin USB: 15mA
+ * 
+ * 2- Habilito SLEEP y queda en 15mA
+ * 3- Con tkSys queda en 15mA
+ * 4- Con tkApp queda en 15mA
+ * 
+ * El tema es que los contadores usan un timer y esto hace que no entre en 
+ * sleep.
+ * Si saco los contadores, queda en 4 mA en reposo.
+ * 
  */
 
 #include "spxR3.h"
@@ -26,7 +41,7 @@ int main( void )
     xHandle_tkSys = xTaskCreateStatic( tkSys, "SYS", tkSys_STACK_SIZE, (void *)1, tkSys_TASK_PRIORITY, xTask_Sys_Buffer, &xTask_Sys_Buffer_Ptr );
     xHandle_tkRS485A = xTaskCreateStatic( tkRS485A, "RS485A", tkRS485A_STACK_SIZE, (void *)1, tkRS485A_TASK_PRIORITY, xTask_RS485A_Buffer, &xTask_RS485A_Buffer_Ptr );
     xHandle_tkWAN = xTaskCreateStatic( tkWAN, "WAN", tkWAN_STACK_SIZE, (void *)1, tkWAN_TASK_PRIORITY, xTask_WAN_Buffer, &xTask_WAN_Buffer_Ptr );
-    xHandle_tkPILOTO = xTaskCreateStatic( tkPiloto, "PLT", tkPILOTO_STACK_SIZE, (void *)1, tkPILOTO_TASK_PRIORITY, xTask_PILOTO_Buffer, &xTask_PILOTO_Buffer_Ptr );
+    xHandle_tkAPP = xTaskCreateStatic( tkAPP, "APP", tkAPP_STACK_SIZE, (void *)1, tkAPP_TASK_PRIORITY, xTask_APP_Buffer, &xTask_APP_Buffer_Ptr );
         
   
 	/* Arranco el RTOS. */
@@ -44,14 +59,6 @@ void vApplicationIdleHook( void )
 //	if ( sleepFlag == true ) {
 //		sleep_mode();
 //	}
-
-}
- */
-//------------------------------------------------------------------------------
-/*
-void vApplicationTickHook( void )
-{
-	//sysTicks++;
 
 }
  */

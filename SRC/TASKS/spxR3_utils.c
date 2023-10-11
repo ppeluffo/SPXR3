@@ -52,7 +52,7 @@ void system_init_outofrtos(void)
     xHandle_tkSys = NULL;
     xHandle_tkRS485A = NULL;
     xHandle_tkWAN = NULL;
-    xHandle_tkPILOTO = NULL;
+    xHandle_tkAPP = NULL;
     
     
 }

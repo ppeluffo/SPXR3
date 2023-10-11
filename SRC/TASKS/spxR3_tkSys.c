@@ -11,12 +11,6 @@
 
 dataRcd_s dataRcd;
 
-StaticTimer_t counters_xTimerBuffer;
-TimerHandle_t counters_xTimer;
-
-void counters_start_timer( void );
-void counters_TimerCallback( TimerHandle_t xTimer );
-
 //------------------------------------------------------------------------------
 void tkSys(void * pvParameters)
 {
@@ -31,8 +25,10 @@ uint8_t i;
     xprintf_P(PSTR("Starting tkSys..\r\n"));
            
     ainputs_init(systemConf.samples_count);
-    counters_init();
-    counters_start_timer();
+    
+    // Si uso un timer para ejecutar una FSM de los contadores entonces:
+    CNT0_init();
+    CNT1_init();
     
 //    xLastWakeTime = xTaskGetTickCount();
     // Espero solo 10s para el primer poleo ( no lo almaceno !!)
@@ -100,9 +96,11 @@ bool retS = false;
     ainputs_apagar_sensores(); 
        
     // COUNTERS
-    counters_read( systemVars.counters );
+    systemVars.counters[0] = CNT0_read();
+    systemVars.counters[1] = CNT1_read();
     counters_convergencia();
-    counters_clear();
+    CNT0_clear();
+    CNT1_clear();
     
     // Armo el dr.
     memcpy(dataRcd->l_ainputs, systemVars.ainputs, sizeof(dataRcd->l_ainputs));
@@ -129,39 +127,5 @@ bool retS = false;
 dataRcd_s *get_system_dr(void)
 {
     return(&dataRcd);
-}
-//------------------------------------------------------------------------------
-void counters_start_timer( void )
-{
-    /*
-     * Arranca el timer de base de tiempos de los contadores.
-     */
-            
-    // Arranco los ticks
-	counters_xTimer = xTimerCreateStatic ("CNTA",
-			pdMS_TO_TICKS( 10 ),
-			pdTRUE,
-			( void * ) 0,
-			counters_TimerCallback,
-			&counters_xTimerBuffer
-			);
-
-	xTimerStart(counters_xTimer, 10);
-
-}
-// -----------------------------------------------------------------------------
-void counters_TimerCallback( TimerHandle_t xTimer )
-{
-	// Funcion de callback de la entrada de contador A.
-	// Controla el pulse_width de la entrada A
-	// Leo la entrada y si esta aun en X, incremento el contador y
-	// prendo el timer xTimer1X que termine el debounce.
-   
-uint8_t cnt = 0;
-    
-    for (cnt=0; cnt < NRO_COUNTER_CHANNELS; cnt++) {
-        counter_FSM(cnt);
-    }
-
 }
 //------------------------------------------------------------------------------

@@ -64,7 +64,7 @@ void consigna_config_defaults(void)
 bool consigna_config( char *s_enable, char *s_cdiurna, char *s_cnocturna )
 {
     
-    xprintf_P(PSTR("CONSIGNA DEBUG: %s,%s,%s\r\n"),s_enable, s_cdiurna, s_cnocturna);
+    //xprintf_P(PSTR("CONSIGNA DEBUG: %s,%s,%s\r\n"),s_enable,s_cdiurna,s_cnocturna);
     
     if (!strcmp_P( strupr(s_enable), PSTR("TRUE"))  ) {
         consigna_conf.enabled = true;

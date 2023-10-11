@@ -86,7 +86,7 @@
 
 #define configUSE_PREEMPTION		1
 #define configUSE_IDLE_HOOK			0
-#define configUSE_TICK_HOOK			0
+#define configUSE_TICK_HOOK			1
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 32000000 )
 //#define configCPU_CLOCK_HZ			( ( unsigned long ) 8000000 )
 //#define configCPU_CLOCK_HZ			( ( unsigned long ) 2000000 )
@@ -140,11 +140,14 @@ to exclude the API function. */
 /* Dimensions a buffer used by the command interpreter. */
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE		1
 
-//#define configUSE_TICKLESS_IDLE	2
+#define configUSE_TICKLESS_IDLE	2
 
 void vApplicationSleep( uint16_t xExpectedIdleTime );
 #define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
 
 #define configEXPECTED_IDLE_TIME_BEFORE_SLEEP 1500
+
+#define pdMSTOTICKS( xTimeInMs ) ( ( xTimeInMs * configTICKRATEHZ ) / 1000 )
+#define pdTICKSTOMS( xTicks )    ( ( xTicks * 1000 ) / configTICKRATEHZ )
 
 #endif /* FREERTOS_CONFIG_H */

@@ -16,8 +16,10 @@ extern "C" {
 #include <avr/pgmspace.h>
 #include "stdint.h"
     
+uint32_t sysTicks;
+
 uint8_t u_hash(uint8_t seed, char ch );
-        
+void vApplicationTickHook( void );
 
 #ifdef	__cplusplus
 }

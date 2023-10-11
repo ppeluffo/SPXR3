@@ -278,12 +278,12 @@ bool plt_condiciones_para_ajustar(void)
         xprintf_P(PSTR("                    pRef=%0.3f\r\n"),PLTCB.pRef);
         xprintf_P(PSTR("                    delta=%0.3f\r\n"), fabs(PLTCB.pRef - PLTCB.pB) );
         xprintf_P(PSTR("                    loops=%d\r\n"),PLTCB.loops);
-        if (FC_alta_read() == 1) {
+        if (FC_alta_read() == 0) {
            xprintf_P(PSTR("                    FC_alta=open\r\n"));
         } else {
            xprintf_P(PSTR("                    FC_alta=close(tope)\r\n"));
         }
-        if (FC_baja_read() == 1) {
+        if (FC_baja_read() == 0) {
            xprintf_P(PSTR("                    FC_baja=open\r\n"));
         } else {
            xprintf_P(PSTR("                    FC_baja=close(tope)\r\n"));
@@ -420,14 +420,14 @@ float delta_pres = 0.0;
         
         // Controlo los fin de carrera
         // Ajusto al alta
-        if ( ( FC_alta_read() == 0 ) && ( PLTCB.pRef > PLTCB.pB) ) {
+        if ( ( FC_alta_read() == 1 ) && ( PLTCB.pRef > PLTCB.pB) ) {
             stepper_stop();
             xprintf_P(PSTR("PILOTO AJUSTE: STOP X FIN DE CARRERA ALTA.\r\n"));
             return(false);
         }
         
         // Ajuste a la baja
-        if ( ( FC_baja_read() == 0 ) && ( PLTCB.pRef < PLTCB.pB ) ) {
+        if ( ( FC_baja_read() == 1 ) && ( PLTCB.pRef < PLTCB.pB ) ) {
             stepper_stop();
             xprintf_P(PSTR("PILOTO AJUSTE: STOP X FIN DE CARRERA BAJA.\r\n"));
             return(false);

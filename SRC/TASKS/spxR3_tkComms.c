@@ -31,7 +31,11 @@ uint8_t c = 0;
             WAN_put(c);
         }
         
-        vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
+        if ( WAN_sleeping() ) {
+            vTaskDelay( ( TickType_t)( 30000 / portTICK_PERIOD_MS ) );
+        } else {
+            vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
+        }
 	}    
 }
 //------------------------------------------------------------------------------

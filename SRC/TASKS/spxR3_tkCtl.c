@@ -8,7 +8,7 @@
 
 #include "spxR3.h"
 
-#define TKCTL_DELAY_S	1
+#define TKCTL_DELAY_S	5
 
 void sys_watchdog_check(void);
 void sys_daily_reset(void);
@@ -66,11 +66,12 @@ fat_s l_fat;
 	{
         //vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
 		vTaskDelay( ( TickType_t)( 1000 * TKCTL_DELAY_S / portTICK_PERIOD_MS ) );
-        led_flash();
+        
+        if ( ! WAN_sleeping() ) {
+            led_flash();
+        }
         sys_watchdog_check();
         sys_daily_reset();
-        //xprintf_P(PSTR("Count=%d\r\n"),i++);
-        //xfprintf_P( fdRS485A, PSTR("HOLA122345667789 %05d\r\n"), count++);
 	}
 }
 //------------------------------------------------------------------------------

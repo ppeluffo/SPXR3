@@ -9,7 +9,7 @@
 #include "piloto.h"
 
 //------------------------------------------------------------------------------
-void tkPiloto(void * pvParameters)
+void tkAPP(void * pvParameters)
 {
 
 	/*
@@ -30,7 +30,7 @@ void tkPiloto(void * pvParameters)
 		vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
 
 	vTaskDelay( ( TickType_t)( 500 / portTICK_PERIOD_MS ) );
-    xprintf_P(PSTR("Starting tkPiloto..\r\n"));
+    xprintf_P(PSTR("Starting tkAPP..\r\n"));
         
 	for( ;; )
 	{

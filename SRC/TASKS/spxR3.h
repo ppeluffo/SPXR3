@@ -69,7 +69,7 @@ extern "C" {
 // DEFINES
 //------------------------------------------------------------------------------
 #define FW_REV "1.1.0"
-#define FW_DATE "@ 20231004"
+#define FW_DATE "@ 20231011"
 #define HW_MODELO "SPXR3 FRTOS R001 HW:XMEGA256A3B"
 #define FRTOS_VERSION "FW:FreeRTOS V202111.00"
 #define FW_TYPE "SPXR3"
@@ -89,8 +89,8 @@ extern "C" {
 #define tkCmd_STACK_SIZE		384
 #define tkSys_STACK_SIZE		384
 #define tkRS485A_STACK_SIZE		384
-#define tkWAN_STACK_SIZE		384
-#define tkPILOTO_STACK_SIZE		384
+#define tkWAN_STACK_SIZE		448
+#define tkAPP_STACK_SIZE		384
     
 StaticTask_t xTask_Ctl_Buffer_Ptr;
 StackType_t xTask_Ctl_Buffer [tkCtl_STACK_SIZE];
@@ -107,8 +107,8 @@ StackType_t xTask_RS485A_Buffer [tkRS485A_STACK_SIZE];
 StaticTask_t xTask_WAN_Buffer_Ptr;
 StackType_t xTask_WAN_Buffer [tkWAN_STACK_SIZE];
 
-StaticTask_t xTask_PILOTO_Buffer_Ptr;
-StackType_t xTask_PILOTO_Buffer [tkPILOTO_STACK_SIZE];
+StaticTask_t xTask_APP_Buffer_Ptr;
+StackType_t xTask_APP_Buffer [tkAPP_STACK_SIZE];
 
 
 #define tkCtl_TASK_PRIORITY	 	( tskIDLE_PRIORITY + 1 )
@@ -116,9 +116,9 @@ StackType_t xTask_PILOTO_Buffer [tkPILOTO_STACK_SIZE];
 #define tkSys_TASK_PRIORITY 	( tskIDLE_PRIORITY + 1 )
 #define tkRS485A_TASK_PRIORITY 	( tskIDLE_PRIORITY + 1 )
 #define tkWAN_TASK_PRIORITY 	( tskIDLE_PRIORITY + 1 )
-#define tkPILOTO_TASK_PRIORITY 	( tskIDLE_PRIORITY + 1 )
+#define tkAPP_TASK_PRIORITY 	( tskIDLE_PRIORITY + 1 )
 
-TaskHandle_t xHandle_idle, xHandle_tkCtl, xHandle_tkCmd, xHandle_tkSys, xHandle_tkRS485A, xHandle_tkWAN, xHandle_tkPILOTO;
+TaskHandle_t xHandle_idle, xHandle_tkCtl, xHandle_tkCmd, xHandle_tkSys, xHandle_tkRS485A, xHandle_tkWAN, xHandle_tkAPP;
 
 SemaphoreHandle_t sem_SYSVars;
 StaticSemaphore_t SYSVARS_xMutexBuffer;
@@ -130,8 +130,7 @@ void tkCmd(void * pvParameters);
 void tkSys(void * pvParameters);
 void tkRS485A(void * pvParameters);
 void tkWAN(void * pvParameters);
-void tkWAN(void * pvParameters);
-void tkPiloto(void * pvParameters);
+void tkAPP(void * pvParameters);
 
 typedef struct {
     float l_ainputs[NRO_ANALOG_CHANNELS];
@@ -214,6 +213,7 @@ void WAN_print_configuration(void);
 void WAN_kill_task(void);
 bool WAN_process_data_rcd( dataRcd_s *dataRcd);
 void WAN_config_debug(bool debug );
+bool WAN_sleeping(void);
 
 #ifdef	__cplusplus
 }
