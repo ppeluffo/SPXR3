@@ -17,6 +17,8 @@ typedef enum { WAN_APAGADO=0, WAN_OFFLINE, WAN_ONLINE_CONFIG, WAN_ONLINE_DATA } 
 
 typedef enum { DATA=0, BLOCK, BLOCKEND } tx_type_t;
 
+typedef enum { CONTINUO, DISCRETO, MIXTO_ON, MIXTO_OFF } pwr_modo_now_t;
+
 static uint8_t wan_state;
 
 struct {
@@ -50,7 +52,7 @@ static bool wan_process_frame_data(dataRcd_s *dr);
 static void wan_load_dr_in_txbuffer(dataRcd_s *dr, uint8_t *buff, uint16_t buffer_size );
 
 static bool wan_process_rsp_data(void);
-static pwr_modo_t wan_check_pwr_modo_now(void);
+static pwr_modo_now_t wan_check_pwr_modo_now(void);
 
 bool wan_process_from_dump(char *buff, bool ultimo );
 
@@ -59,6 +61,8 @@ void wan_APAGAR_MODEM(void);
 
 #define DEBUG_WAN       true
 #define NO_DEBUG_WAN    false
+
+#define SLEEP_TIME_MIXTO_OFF    1800
 
 bool f_inicio;
 
@@ -96,6 +100,8 @@ void tkWAN(void * pvParameters)
 	for( ;; )
 	{
             
+        KICK_WDG(WAN_WDG_bp);
+        
         switch(wan_state) {
             case WAN_APAGADO:
                 wan_state_apagado();
@@ -127,15 +133,14 @@ static void wan_state_apagado(void)
      * este caso espero TimerDial.
      */
     
-uint16_t sleep_ticks;
-pwr_modo_t pwr_modo;
+int16_t sleep_ticks;
 uint32_t ulNotifiedValue;
 BaseType_t xResult;
+pwr_modo_now_t pwr_modo_now;
 
-    xprintf_P(PSTR("WAN:: State APAGADO\r\n"));
-     
-    link_up4data = false;
-    
+
+    xprintf_P(PSTR("WAN:: State APAGADO\r\n"));   
+    link_up4data = false;  
     wan_APAGAR_MODEM();
     vTaskDelay( ( TickType_t)( 5000 / portTICK_PERIOD_MS ) );
     
@@ -146,49 +151,81 @@ BaseType_t xResult;
         goto exit;
     }
     
-    pwr_modo = wan_check_pwr_modo_now();
-    
-    //xprintf_P(PSTR("DEBUG2: timerdial=%d, pwr_modo=%d\r\n"), systemConf.timerdial, systemConf.pwr_modo );
-                
-    // En modo continuo salgo enseguida. No importa timerdial
-    if ( pwr_modo == PWR_CONTINUO) {
-        vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
-        //xprintf_P(PSTR("WAN:: DEBUG: pwrmodo continuo\r\n"));
-        goto exit;
-    
-    } else {
-    
-        // Estoy en modo discreto o mixto en horario discreto
-        // Espero timerDial
-        if ( systemConf.timerdial >= 900 ) {
-            // Discreto
+    pwr_modo_now = wan_check_pwr_modo_now();
+    switch(pwr_modo_now) {
+
+        case CONTINUO:
+            xprintf_P(PSTR("WAN:: DEBUG: pwrmodo continuo\r\n"));
+            vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
+            goto exit;
+            break;
+            
+        case DISCRETO:
+            xprintf_P(PSTR("WAN:: DEBUG: pwrmodo discreto\r\n"));
             sleep_ticks = systemConf.timerdial;
-        } else {
-            // Mixto: Me conecto cada 1/2 hora
-            sleep_ticks = 1800;
-        }
-        //xprintf_P(PSTR("WAN:: DEBUG: pwrmodo discreto. Sleep %d secs.\r\n"), sleep_ticks );
-        sleep_ticks /= 60;  // paso a minutos
-        // Duermo
-        wan_sleeping = true;
-        xprintf_P(PSTR("tkWan going to sleep..\r\n" ));
-        while ( sleep_ticks-- > 0) {
-            //kick_wdt(XWAN_WDG_bp);
-            // Espero de a 1 min para poder entrar en tickless.
-            //vTaskDelay( ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
-            // Duermo monitoreando las señales.
-			xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
-			if ( xResult == pdTRUE ) {
-				if ( ( ulNotifiedValue & DATA_FRAME_READY ) != 0 ) {
-                    //xprintf_P(PSTR("DEBUG: WAN SIGNAL RCVD\r\n"));
-					goto exit;
-				}
-			}
-        }
+            wan_sleeping = true;
+            xprintf_P(PSTR("tkWan going to sleep %d secs..\r\n" ), systemConf.timerdial);
+            
+            while (1) {
+                // Espero de a 1 min para poder entrar en tickless.
+                // Duermo monitoreando las señales.
+                KICK_WDG(WAN_WDG_bp);
+                xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
+                if ( xResult == pdTRUE ) {
+                    if ( ( ulNotifiedValue & DATA_FRAME_READY ) != 0 ) {
+                        //xprintf_P(PSTR("DEBUG: WAN SIGNAL RCVD\r\n"));
+                        goto exit;
+                    }
+                }
+                sleep_ticks -= 60;
+                if ( sleep_ticks <= 0) {
+                    goto exit;
+                }
+                //
+            }    
+            break;
+            
+        case MIXTO_ON:
+            xprintf_P(PSTR("WAN:: DEBUG pwrmodo mixto,ON.\r\n"));
+            vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
+            goto exit;
+            break;
+            
+        case MIXTO_OFF: 
+            // Debo dormir en intervalos de 30 mins.
+            sleep_ticks = SLEEP_TIME_MIXTO_OFF;
+            wan_sleeping = true;
+            xprintf_P(PSTR("WAN:: DEBUG: pwrmodo mixto,OFF.\r\n"));
+            xprintf_P(PSTR("tkWan going to sleep..%d secs\r\n" ), sleep_ticks );
+            
+            while (1) {
+                // Espero de a 1 min para poder entrar en tickless.
+                // Duermo monitoreando las señales.
+                KICK_WDG(WAN_WDG_bp);
+                xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
+                if ( xResult == pdTRUE ) {
+                    if ( ( ulNotifiedValue & DATA_FRAME_READY ) != 0 ) {
+                        //xprintf_P(PSTR("DEBUG: WAN SIGNAL RCVD\r\n"));
+                        goto exit;
+                    }
+                }
+                sleep_ticks -= 60;
+                if ( sleep_ticks <= 0) {
+                    goto exit;
+                }
+                //
+            }    
+
+            break;
+            
+        default:
+            xprintf_P(PSTR("WAN:: DEBUG: pwrmodo NO RECONOCIDO: ERROR !!!\r\n"));
+            break;
     }
-    
+     
 exit:
     
+    KICK_WDG(WAN_WDG_bp);
     wan_sleeping = false;
     wan_PRENDER_MODEM();
     wan_state = WAN_OFFLINE;
@@ -207,7 +244,6 @@ static void wan_state_offline(void)
      * Este prende flags para indicar al resto que tipo de respuesta llego.
      */
  
-
     xprintf_P(PSTR("WAN:: State OFFLINE\r\n"));
     
     if ( ! wan_process_frame_linkup() ) {
@@ -294,7 +330,7 @@ static void wan_state_online_data(void)
      * Si estoy en modo discreto, salgo
      */
 
-pwr_modo_t pwr_modo;
+pwr_modo_now_t pwr_modo_now;
 uint32_t sleep_time_ms;
 bool res;
 
@@ -308,17 +344,18 @@ bool res;
     xprintf_P(PSTR("WAN:: ONLINE: dump memory...\r\n"));  
     // Vacio la memoria.
     wan_send_from_memory();  
-    // 
-    // En modo continuo, envio cuando hay datos.
-    pwr_modo = wan_check_pwr_modo_now();   
-    if ( pwr_modo == PWR_DISCRETO) {
+    //   
+    pwr_modo_now = wan_check_pwr_modo_now();
+ 
+    if ( (pwr_modo_now == DISCRETO) ||  (pwr_modo_now == MIXTO_OFF ) ) {
        wan_state = WAN_APAGADO;
        goto quit;
     }
     
     // En modo continuo me quedo esperando por datos para transmitir. 
-    while( wan_check_pwr_modo_now() == PWR_CONTINUO ) {
-              
+    while( ( (pwr_modo_now == CONTINUO ) ||  (pwr_modo_now == MIXTO_ON ) ) ) {
+         
+        pwr_modo_now = wan_check_pwr_modo_now();
         //FAT_read(&l_fat1);
         //xprintf_P( PSTR("WAN D:: wrPtr=%d,rdPtr=%d,count=%d\r\n"), l_fat1.head, l_fat1.tail, l_fat1.count );
         
@@ -337,10 +374,12 @@ bool res;
         
         // Espero que hayan mas datos
          // Vuelvo a chequear el enlace cada 1 min( tickeless & wdg ).
-//        kick_wdt(XWAN_WDG_bp);
+        KICK_WDG(WAN_WDG_bp);
         sleep_time_ms = ( TickType_t)(  (60000) / portTICK_PERIOD_MS );
         ulTaskNotifyTake( pdTRUE, sleep_time_ms );;  
     }
+    
+    wan_state = WAN_APAGADO;
    
 quit:
     
@@ -348,7 +387,7 @@ quit:
     return;        
 }
 //------------------------------------------------------------------------------
-static pwr_modo_t wan_check_pwr_modo_now(void)
+static pwr_modo_now_t wan_check_pwr_modo_now(void)
 {
     
 RtcTimeType_t rtc;
@@ -356,43 +395,41 @@ uint16_t now;
 uint16_t pwr_on;
 uint16_t pwr_off;
 
-    //xprintf_P(PSTR("DEBUG: timerdial=%d, pwr_modo=%d\r\n"), systemConf.timerdial, systemConf.pwr_modo );
 
-   // En modo continuo salgo enseguida. No importa timerdial
-    if ( systemConf.pwr_modo == PWR_CONTINUO) {
-        //xprintf_P(PSTR("WAN:: DEBUG: CPWM pwrmodo continuo.\r\n"));
-        return( PWR_CONTINUO);
-    }
-    
-    // En modo mixto, si estoy en el horario continuo salgo:
-    if ( systemConf.pwr_modo == PWR_MIXTO) {
-        RTC_read_dtime(&rtc);
-        now = rtc.hour * 100 + rtc.min;
-		pwr_on = systemConf.pwr_hhmm_on;
-		pwr_off = systemConf.pwr_hhmm_off;
+    switch(systemConf.pwr_modo) {
         
-        // Caso 1:
-        if ( pwr_on < pwr_off ) {
-            if ( (now > pwr_on) && ( now < pwr_off)) {
-                // Estoy en modo MIXTO dentro del horario continuo
-                //xprintf_P(PSTR("WAN:: DEBUG: CPWM pwrmodo mixto continuo(A).\r\n"));
-                return( PWR_CONTINUO);
+        case PWR_CONTINUO:
+            return (CONTINUO);
+            break;
+            
+        case PWR_DISCRETO:
+            return (DISCRETO);
+            break;
+            
+        case PWR_MIXTO:
+            // Vemos si estoy en horario de continuo o de apagado
+            RTC_read_dtime(&rtc);
+            now = rtc.hour * 100 + rtc.min;
+            pwr_on = systemConf.pwr_hhmm_on;
+            pwr_off = systemConf.pwr_hhmm_off;
+        
+            // Caso 1:
+            if ( pwr_on < pwr_off ) {
+                if ( (pwr_on < now ) && ( now < pwr_off)) {
+                    return (MIXTO_ON);
+                } 
             }
-        }
         
-        // Caso 2:
-        if ( pwr_on >= pwr_off ) {
-            if ( ( now < pwr_off) || (now > pwr_on)) {
-                // Estoy en modo MIXTO dentro del horario continuo
-                //xprintf_P(PSTR("WAN:: CPWM DEBUG: pwrmodo mixto continuo(B).\r\n"));
-                return( PWR_CONTINUO);
-            }                
-        }
-    }
-    
-    // Estoy en modo discreto o mixto en horario discreto
-    //xprintf_P(PSTR("WAN:: DEBUG: CPWM pwrmodo discreto.\r\n"));
-    return( PWR_DISCRETO);
+            // Caso 2:
+            if ( pwr_on > pwr_off ) {
+                if ( ( now < pwr_off) || (now > pwr_on)) {
+                    return(MIXTO_ON);
+                } 
+            }
+            
+            return(MIXTO_OFF);
+            break;
+    } 
 }
 //------------------------------------------------------------------------------
 static bool wan_process_frame_linkup(void)
@@ -1303,6 +1340,7 @@ bool retS = false;
     xprintf_P( PSTR("WAN:: wrPtr=%d,rdPtr=%d,count=%d\r\n"), l_fat1.head, l_fat1.tail, l_fat1.count );
     
     while ( l_fat1.count > 0 ) {
+        KICK_WDG(WAN_WDG_bp);
         xprintf_P( PSTR("WAN: wrPtr=%d,rdPtr=%d,count=%d\r\n"),l_fat1.head, l_fat1.tail, l_fat1.count );
         
         if ( FS_readRcd( &dr, sizeof(dataRcd_s) ) ) {

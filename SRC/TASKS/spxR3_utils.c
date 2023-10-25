@@ -393,7 +393,7 @@ uint16_t l_timerdial;
         l_timerdial = TDIAL_MIN_DISCRETO;
     }
     
-	systemConf.timerdial = atoi(s_timerdial);
+	systemConf.timerdial = l_timerdial;
 	return(true);
 }
 //------------------------------------------------------------------------------
@@ -691,6 +691,13 @@ uint16_t hh, mm;
             break;
     }
     xprintf_P(PSTR(" pwr_on:%d, pwr_off:%d\r\n"),systemConf.pwr_hhmm_on, systemConf.pwr_hhmm_off );
+}
+//------------------------------------------------------------------------------
+void kick_wdt( uint8_t bit_pos)
+{
+    // Pone el bit correspondiente en 0.
+    sys_watchdog &= ~ (1 << bit_pos);
+    
 }
 //------------------------------------------------------------------------------
 

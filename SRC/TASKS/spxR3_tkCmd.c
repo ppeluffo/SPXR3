@@ -14,8 +14,11 @@ static void cmdConfigFunction(void);
 static void pv_snprintfP_OK(void );
 static void pv_snprintfP_ERR(void );
 
-#define T_SLEEPING  30000
-#define T_AWAKE     1000
+#define T_SLEEPING  60000
+#define T_AWAKE     90000
+
+bool sleeping;
+
 //------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
 {
@@ -28,9 +31,7 @@ void tkCmd(void * pvParameters)
         vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
 
 uint8_t c = 0;
-int16_t awake_counter;
-bool sleeping;
-
+int32_t awake_counter;
 
     FRTOS_CMD_init();
 
@@ -43,7 +44,7 @@ bool sleeping;
     FRTOS_CMD_register( "test", cmdTestFunction );
     FRTOS_CMD_register( "config", cmdConfigFunction );
     
-    xprintf_P(PSTR("Starting tkCmd..\r\n" ));
+    xprintf_P(PSTR("Starting tkCMD..\r\n" ));
     xprintf_P(PSTR("Spymovil %s %s %s %s \r\n") , HW_MODELO, FRTOS_VERSION, FW_REV, FW_DATE);
        
     awake_counter = T_AWAKE;   
@@ -53,6 +54,8 @@ bool sleeping;
 	for( ;; )
 	{
          
+        KICK_WDG(CMD_WDG_bp);
+        
 		c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 		// el read se bloquea 10ms. lo que genera la espera.
 		//while ( frtos_read( fdTERM, (char *)&c, 1 ) == 1 ) {
@@ -72,11 +75,11 @@ bool sleeping;
         }
         
         if ( sleeping ) {
-            vTaskDelay( ( TickType_t)( T_SLEEPING / portTICK_PERIOD_MS ) ); 
-            //vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );   
+            // Duermo 60 secs
+            vTaskDelay( ( TickType_t)( T_SLEEPING / portTICK_PERIOD_MS ) );  
         } else {
             // Espero 10ms si no hay caracteres en el buffer
-            vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );    
+            vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );  
         }
                
 	}    
@@ -176,6 +179,7 @@ static void cmdHelpFunction(void)
         xprintf_P( PSTR("          awake,sleep,pha01,pha10,phb01,phb10\r\n"));
         xprintf_P( PSTR("  valve {A,B} {open,close}\r\n"));
         xprintf_P( PSTR("  consigna {diurna|nocturna}\r\n"));
+        xprintf_P( PSTR("  sleep {true|false}\r\n"));
        
         
     }  else if ( !strcmp_P( strupr(argv[1]), PSTR("READ"))) {
@@ -425,7 +429,25 @@ static void cmdWriteFunction(void)
 {
 
     FRTOS_CMD_makeArgv();
+
+    // COMMAND
+    // write command {true|false}
+    if (!strcmp_P( strupr(argv[1]), PSTR("SLEEP")) ) {
+        if (!strcmp_P( strupr(argv[2]), PSTR("TRUE")) ) {
+            sleeping = true;
+            pv_snprintfP_OK();
+            return;
+        }
+        if (!strcmp_P( strupr(argv[2]), PSTR("FALSE")) ) {
+            sleeping = false;
+            pv_snprintfP_OK();
+            return;
+        }
+        pv_snprintfP_ERR();
+        return; 
        
+	}
+    
     // CONSIGNA
     // write consigna {diurna|nocturna}
     if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA")) ) {

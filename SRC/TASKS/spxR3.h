@@ -69,7 +69,7 @@ extern "C" {
 // DEFINES
 //------------------------------------------------------------------------------
 #define FW_REV "1.1.0"
-#define FW_DATE "@ 20231011"
+#define FW_DATE "@ 20231025"
 #define HW_MODELO "SPXR3 FRTOS R001 HW:XMEGA256A3B"
 #define FRTOS_VERSION "FW:FreeRTOS V202111.00"
 #define FW_TYPE "SPXR3"
@@ -214,6 +214,24 @@ void WAN_kill_task(void);
 bool WAN_process_data_rcd( dataRcd_s *dataRcd);
 void WAN_config_debug(bool debug );
 bool WAN_sleeping(void);
+
+void kick_wdt( uint8_t bit_pos);
+
+uint8_t sys_watchdog;
+
+#define APP_WDG_bp    0
+#define CMD_WDG_bp    1
+#define COMMS_WDG_bp  2
+#define SYS_WDG_bp    3
+#define WAN_WDG_bp    4
+
+// No habilitado PLT_WDG !!!
+#define WDG_bm      0x1F 
+
+// Pone todos los wdg en 1.
+#define WDG_INIT() ( sys_watchdog = WDG_bm )
+
+#define KICK_WDG(wdg_bp) sys_watchdog &= ~ (1 << wdg_bp);
 
 #ifdef	__cplusplus
 }

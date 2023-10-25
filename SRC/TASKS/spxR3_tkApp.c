@@ -39,6 +39,9 @@ void tkAPP(void * pvParameters)
          * que se realmacene la orden de un mismo tslot
          * 
          */
+        
+        KICK_WDG(APP_WDG_bp);
+        
 		vTaskDelay( ( TickType_t)( 30000 / portTICK_PERIOD_MS ) );
         
         if ( systemConf.piloto_conf.enabled ) {

@@ -331,7 +331,7 @@ bool plt_condiciones_para_ajustar(void)
     // Si tengo que subir la presion.
     if ( PLTCB.pRef > PLTCB.pB) {
         //  FC_alta == 0: no puedo.
-        if ( FC_alta_read() == 0) {
+        if ( FC_alta_read() == 1) {
             if (f_debug_piloto) {
                 xprintf_P( PSTR("PILOTO condXajuste EXIT: FC_alta=close !!\r\n"));
             }
@@ -352,7 +352,7 @@ bool plt_condiciones_para_ajustar(void)
     // Si tengo que bajar la presion
     if ( PLTCB.pRef < PLTCB.pB ) {
         //  FC_baja == 0: no puedo.
-        if (FC_baja_read() == 0 ) {
+        if (FC_baja_read() == 1 ) {
             if (f_debug_piloto) {
                 xprintf_P( PSTR("PILOTO condXajuste EXIT: FC_baja=close !!\r\n"));
             }

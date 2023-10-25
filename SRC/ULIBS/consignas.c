@@ -4,7 +4,7 @@
 consigna_conf_t consigna_conf;
 
 //------------------------------------------------------------------------------
-void consigna_set_diurna(void)
+void consigna_set_nocturna(void)
 {
 	// ( VA open / VB close ) -> ( VA close / VB open )
 	// Open VB con lo que el punto común de las válvulas queda a pAtm y la VA puede operar correctamente.
@@ -30,7 +30,7 @@ void consigna_set_diurna(void)
     DRV8814_power_off();
 }
 //------------------------------------------------------------------------------
-void consigna_set_nocturna(void)
+void consigna_set_diurna(void)
 {
 
     // Proporciono corriente.

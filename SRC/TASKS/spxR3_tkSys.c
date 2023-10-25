@@ -15,14 +15,13 @@ dataRcd_s dataRcd;
 void tkSys(void * pvParameters)
 {
 
-//TickType_t xLastWakeTime = 0;
-uint32_t waiting_ticks;
-uint8_t i;
+TickType_t xLastWakeTime = 0;
+uint32_t waiting_ticks_ms;
 
 	while (! run_tasks )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
     
-    xprintf_P(PSTR("Starting tkSys..\r\n"));
+    xprintf_P(PSTR("Starting tkSYS..\r\n"));
            
     ainputs_init(systemConf.samples_count);
     
@@ -30,21 +29,32 @@ uint8_t i;
     CNT0_init();
     CNT1_init();
     
-//    xLastWakeTime = xTaskGetTickCount();
     // Espero solo 10s para el primer poleo ( no lo almaceno !!)
     vTaskDelay( ( TickType_t)( 10000 / portTICK_PERIOD_MS ) );
     poll_data(&dataRcd);
     xprint_dr(&dataRcd);
+    xLastWakeTime = xTaskGetTickCount();
     
 	for( ;; )
 	{
+        KICK_WDG(SYS_WDG_bp);
         // Espero timerpoll ms.
         //waiting_ticks = (uint32_t)systemConf.timerpoll * 1000 / portTICK_PERIOD_MS;
-        //vTaskDelayUntil( &xLastWakeTime, ( TickType_t)( waiting_ticks ));
         // El poleo se lleva 5 secs.
-        waiting_ticks = (uint32_t) ( systemConf.timerpoll * 1000 - PWRSENSORES_SETTLETIME_MS )  / portTICK_PERIOD_MS / 10;
-        for (i=0; i< 10; i++) {
-            vTaskDelay( ( TickType_t)( waiting_ticks ) );
+        // ticktype es uint_32 por lo que puedo esperar en un solo ciclo !!!
+        // waiting_ticks = (uint32_t)systemConf.timerpoll * 1000 - PWRSENSORES_SETTLETIME_MS;
+        waiting_ticks_ms = (uint32_t)systemConf.timerpoll * 1000;
+        // Espero de a 60 secs
+        while ( waiting_ticks_ms > 60000 ) {
+            KICK_WDG(SYS_WDG_bp);
+            //vTaskDelay( ( TickType_t)( 60000 / portTICK_PERIOD_MS ) );
+            vTaskDelayUntil( &xLastWakeTime, ( TickType_t)( 60000 / portTICK_PERIOD_MS ));
+            waiting_ticks_ms -= 60000;
+        }
+        // Espero el ultimo tramo
+        if ( waiting_ticks_ms > 0) {    
+            //vTaskDelay( ( TickType_t)( waiting_ticks / portTICK_PERIOD_MS ) );
+            vTaskDelayUntil( &xLastWakeTime, ( TickType_t)( waiting_ticks_ms / portTICK_PERIOD_MS ));
         }
         
         // Leo datos

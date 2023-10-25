@@ -25,6 +25,8 @@ uint8_t c = 0;
 	for( ;; )
 	{
          
+        KICK_WDG(COMMS_WDG_bp);
+        
 		c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 		// el read se bloquea 50ms. lo que genera la espera.
         while ( xfgetc( fdRS485A, (char *)&c ) == 1 ) {

@@ -34,6 +34,8 @@ fat_s l_fat;
        config_default();
     }
        
+    WDG_INIT();
+    
     // Actualizo las configuraciones locales en el systemConf
     ainputs_update_local_config(&systemConf.ainputs_conf);
     counters_update_local_config(&systemConf.counters_conf);
@@ -77,8 +79,46 @@ fat_s l_fat;
 //------------------------------------------------------------------------------
 void sys_watchdog_check(void)
 {
-    wdt_reset();
-    return;
+    // El watchdog se inicializa en 1F.
+    // Cada tarea debe poner su bit en 0. Si alguna no puede, se resetea
+    // Esta funcion se corre cada 5s (TKCTL_DELAY_S)
+    
+static int16_t wdg_count = 0;
+
+    //xprintf_P(PSTR("wdg reset\r\n"));
+    //wdt_reset();
+    //return;
+        
+    // EL wdg lo leo cada 2 minutos 120secs ( 5s x 24 counts )
+    if ( wdg_count++ <  (180 / TKCTL_DELAY_S ) ) {
+        wdt_reset();
+        return;
+    }
+    
+    wdg_count = 0;
+    
+    // Analizo los watchdows individuales
+    //xprintf_P(PSTR("tkCtl: check wdg [0x%02X]\r\n"), sys_watchdog );
+    if ( sys_watchdog != 0 ) {  
+        xprintf_P(PSTR("tkCtl: reset by wdg [0x%02X]\r\n"), sys_watchdog );
+        if ( sys_watchdog & (1<<APP_WDG_bp)) {
+            xprintf_P(PSTR("tkCtl: APP wdg kicked..\r\n") );
+        } else if ( sys_watchdog & (1<<CMD_WDG_bp)) {
+            xprintf_P(PSTR("tkCtl: CMD wdg kicked..\r\n") );
+        } else if ( sys_watchdog & (1<<COMMS_WDG_bp)) {
+            xprintf_P(PSTR("tkCtl: COMMS wdg kicked..\r\n") );  
+        } else if ( sys_watchdog & (1<<SYS_WDG_bp)) {
+            xprintf_P(PSTR("tkCtl: SYS wdg kicked..\r\n") );
+        } else if ( sys_watchdog & (1<<WAN_WDG_bp)) {
+            xprintf_P(PSTR("tkCtl: WAN wdg kicked..\r\n") );
+        }
+        vTaskDelay( ( TickType_t)( 1000 / portTICK_PERIOD_MS ) );
+        reset();
+        
+    } else {
+        wdt_reset();
+        WDG_INIT();
+    }
 }
 //------------------------------------------------------------------------------
 void sys_daily_reset(void)
