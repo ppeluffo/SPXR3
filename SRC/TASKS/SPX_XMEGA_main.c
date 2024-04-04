@@ -18,9 +18,18 @@
  * sleep.
  * Si saco los contadores, queda en 4 mA en reposo.
  * 
+ * ----------------------------------------------------------------------------
+ * Version 1.1.1 @ 20240403
+ * 1- Cambio FW_TYPE a SPX_XMEGA en vez de SPXR3
+ * 2- Aumento el stack de tkWan a 512 y creo una funcion que monitorea los stacks.
+ *    La copio de la que hice en SPQ_AVRDA.
+ *    Agrego la funcion u_check_stacks_usage() y el comando 'test stacks'
+ * 3- Aumento el tamaño del buffer del hash en ainputs. Se aumenta a 64 bytes.
+ * ----------------------------------------------------------------------------
+ * 
  */
 
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 
 //------------------------------------------------------------------------------
 int main( void )

@@ -1,10 +1,12 @@
 
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 
-void RTC32_ToscEnable( bool use1khz );
+//void RTC32_ToscEnable( bool use1khz );
 void configure_systemMainClock(void);
-void configure_RTC32(void);
 
+#if configUSE_TICKLESS_IDLE == 2
+void configure_RTC32(void);
+#endif
 //------------------------------------------------------------------------------
 void system_init_outofrtos(void)
 {
@@ -144,14 +146,15 @@ void configure_systemMainClock(void)
 	//
 	// Si uso el RTC32, habilito el oscilador para 1ms.
 
-	RTC32_ToscEnable(true);
+	//RTC32_ToscEnable(true);
 //#endif
 
 	// Lockeo la configuracion.
-	CCPWrite( &CLK.LOCK, CLK_LOCK_bm );
+	//CCPWrite( &CLK.LOCK, CLK_LOCK_bm );
 
 }
 //------------------------------------------------------------------------------
+#if configUSE_TICKLESS_IDLE == 2
 void configure_RTC32(void)
 {
 	// El RTC32 lo utilizo para despertarme en el modo tickless.
@@ -191,7 +194,9 @@ void configure_RTC32(void)
 	/* Wait for sync */
 	do { } while ( RTC32.SYNCCTRL & RTC32_SYNCBUSY_bm );
 }
+#endif
 //------------------------------------------------------------------------------
+#if configUSE_TICKLESS_IDLE == 2
 void RTC32_ToscEnable( bool use1khz )
 {
 	/* Enable 32 kHz XTAL oscillator, with 1 kHz or 1 Hz output. */
@@ -206,6 +211,7 @@ void RTC32_ToscEnable( bool use1khz )
 	/* Wait for oscillator to stabilize before returning. */
 //	do { } while ( RTC32_ToscBusy() );
 }
+#endif
 //------------------------------------------------------------------------------
 void reset(void)
 {
@@ -697,6 +703,36 @@ void kick_wdt( uint8_t bit_pos)
 {
     // Pone el bit correspondiente en 0.
     sys_watchdog &= ~ (1 << bit_pos);
+    
+}
+//------------------------------------------------------------------------------
+void u_check_stacks_usage(void)
+{
+    /*
+     * Mide el stack de todas las tareas y lo informa
+     */
+    
+
+            
+uint16_t uxHighWaterMark;
+
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkCmd );
+    xprintf_P(PSTR("tkCMD stack = %d\r\n"), uxHighWaterMark );
+
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkCtl );
+    xprintf_P(PSTR("tkCTL stack = %d\r\n"), uxHighWaterMark );
+    
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkSys );
+    xprintf_P(PSTR("tkSYS stack = %d\r\n"), uxHighWaterMark );
+    
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkRS485A );
+    xprintf_P(PSTR("tkRS485A stack = %d\r\n"), uxHighWaterMark );
+
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkWAN );
+    xprintf_P(PSTR("tkWAN stack = %d\r\n"), uxHighWaterMark );
+    
+    uxHighWaterMark = SPYuxTaskGetStackHighWaterMark( xHandle_tkAPP );
+    xprintf_P(PSTR("tkAPP stack = %d\r\n"), uxHighWaterMark );
     
 }
 //------------------------------------------------------------------------------

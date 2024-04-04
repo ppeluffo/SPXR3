@@ -531,7 +531,7 @@ bool ainputs_read_debug(void)
 uint8_t ainputs_hash( void )
 {
     
-uint8_t hash_buffer[32];
+uint8_t hash_buffer[64];
 uint8_t i,j;
 uint8_t hash = 0;
 char *p;

@@ -1,4 +1,4 @@
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 #include "frtos_cmd.h"
         
 SemaphoreHandle_t sem_WAN;

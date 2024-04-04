@@ -6,7 +6,7 @@
  */
 
 
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 
 #define TKCTL_DELAY_S	5
 

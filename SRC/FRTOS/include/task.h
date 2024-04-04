@@ -2328,6 +2328,7 @@ void *pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
  */
 void vTaskInternalSetTimeOutState( TimeOut_t * const pxTimeOut ) PRIVILEGED_FUNCTION;
 
+uint16_t SPYuxTaskGetStackHighWaterMark( TaskHandle_t xTask );
 
 #ifdef __cplusplus
 }

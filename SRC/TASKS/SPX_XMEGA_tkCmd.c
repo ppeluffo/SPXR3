@@ -1,5 +1,5 @@
 
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 #include "frtos_cmd.h"
 
 static void cmdClsFunction(void);
@@ -98,6 +98,13 @@ char *delim = "&,;:=><";
 
     FRTOS_CMD_makeArgv();
 
+        // STACKS SIZE
+    if (!strcmp_P( strupr(argv[1]), PSTR("STACKS"))  ) {
+        u_check_stacks_usage();
+        pv_snprintfP_OK();
+        return;
+    }
+    
     if (!strcmp_P( strupr(argv[1]), PSTR("CONSIGNA"))  ) { 
         strncpy(localStr, "ENABLE=TRUE&DIURNA=730&NOCTURNA=2345</html>", sizeof(localStr));
         xprintf_P(PSTR("CONSIGNA DEBUG: localStr=[%s]\r\n"), localStr);

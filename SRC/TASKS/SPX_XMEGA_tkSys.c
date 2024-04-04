@@ -7,7 +7,7 @@
  */
 
 
-#include "spxR3.h"
+#include "SPX_XMEGA.h"
 
 dataRcd_s dataRcd;
 

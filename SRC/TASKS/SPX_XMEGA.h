@@ -68,11 +68,11 @@ extern "C" {
 //------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------
-#define FW_REV "1.1.0"
-#define FW_DATE "@ 20231025"
+#define FW_REV "1.1.1"
+#define FW_DATE "@ 20240403"
 #define HW_MODELO "SPXR3 FRTOS R001 HW:XMEGA256A3B"
 #define FRTOS_VERSION "FW:FreeRTOS V202111.00"
-#define FW_TYPE "SPXR3"
+#define FW_TYPE "SPX_XMEGA"
 
 #if configUSE_TICKLESS_IDLE == 2
 #define SPX_FTROS_VERSION "FFW:FreeRTOS V202111.00 TICKLESS"
@@ -89,7 +89,7 @@ extern "C" {
 #define tkCmd_STACK_SIZE		384
 #define tkSys_STACK_SIZE		384
 #define tkRS485A_STACK_SIZE		384
-#define tkWAN_STACK_SIZE		448
+#define tkWAN_STACK_SIZE		512
 #define tkAPP_STACK_SIZE		384
     
 StaticTask_t xTask_Ctl_Buffer_Ptr;
@@ -192,6 +192,8 @@ bool config_almlevel ( char *s_almlevel );
 void data_resync_clock( char *str_time, bool force_adjust);
 void reset_memory_remote(void);
 void print_pwr_configuration(void);
+
+void u_check_stacks_usage(void);
 
 bool poll_data(dataRcd_s *dataRcd);
 void xprint_dr(dataRcd_s *dr);

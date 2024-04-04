@@ -5042,4 +5042,31 @@ when performing module tests). */
 
 #endif
 
+//-----------------------------------------------------------------------------
+/*
+ * Funcion propia para leer el tamaño usado del stack pero en 16 bits.
+ * 
+ */
+uint16_t SPYuxTaskGetStackHighWaterMark( TaskHandle_t xTask )
+    {
+        TCB_t * pxTCB;
+        uint8_t * pucEndOfStack;
+        uint16_t uxReturn;
+
+        pxTCB = prvGetTCBFromHandle( xTask );
+
+        #if portSTACK_GROWTH < 0
+            {
+                pucEndOfStack = ( uint8_t * ) pxTCB->pxStack;
+            }
+        #else
+            {
+                pucEndOfStack = ( uint8_t * ) pxTCB->pxEndOfStack;
+            }
+        #endif
+
+        uxReturn = prvTaskCheckFreeStackSpace( pucEndOfStack );
+
+        return uxReturn;
+    }
 
