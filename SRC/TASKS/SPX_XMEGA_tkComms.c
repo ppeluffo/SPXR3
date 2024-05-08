@@ -19,6 +19,8 @@ uint8_t c = 0;
     while ( ! run_tasks )
         vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
     
+    lBchar_CreateStatic ( &modem_rx_lbuffer, modem_rx_buffer, MODEM_RX_BUFFER_SIZE );
+
     xprintf_P(PSTR("Starting tkRS485A..\r\n" ));
         
 	// loop
@@ -30,11 +32,15 @@ uint8_t c = 0;
 		c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 		// el read se bloquea 50ms. lo que genera la espera.
         while ( xfgetc( fdRS485A, (char *)&c ) == 1 ) {
-            WAN_put(c);
+            // Si hay datos recividos, los encolo
+            if ( ! lBchar_Put( &modem_rx_lbuffer, c) ) {
+                // Si el buffer esta lleno, la borro !!!!
+                lBchar_Flush(&modem_rx_lbuffer);
+            }
         }
         
         if ( WAN_sleeping() ) {
-            vTaskDelay( ( TickType_t)( 30000 / portTICK_PERIOD_MS ) );
+            //vTaskDelay( ( TickType_t)( 30000 / portTICK_PERIOD_MS ) );
         } else {
             vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
         }

@@ -74,6 +74,8 @@ fat_s l_fat;
         }
         sys_watchdog_check();
         sys_daily_reset();
+        
+        //xfprintf_P( fdRS485A,PSTR("0123456789ABCDEFG") );
 	}
 }
 //------------------------------------------------------------------------------
@@ -86,8 +88,8 @@ void sys_watchdog_check(void)
 static int16_t wdg_count = 0;
 
     //xprintf_P(PSTR("wdg reset\r\n"));
-    //wdt_reset();
-    //return;
+    wdt_reset();
+    return;
         
     // EL wdg lo leo cada 2 minutos 120secs ( 5s x 24 counts )
     if ( wdg_count++ <  (180 / TKCTL_DELAY_S ) ) {

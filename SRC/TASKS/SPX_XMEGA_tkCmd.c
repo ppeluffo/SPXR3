@@ -1,6 +1,7 @@
 
 #include "SPX_XMEGA.h"
 #include "frtos_cmd.h"
+#include "frtos-io.h"
 
 static void cmdClsFunction(void);
 static void cmdHelpFunction(void);
@@ -13,6 +14,8 @@ static void cmdConfigFunction(void);
 
 static void pv_snprintfP_OK(void );
 static void pv_snprintfP_ERR(void );
+
+static bool test_modem(void);
 
 #define T_SLEEPING  60000
 #define T_AWAKE     90000
@@ -98,7 +101,18 @@ char *delim = "&,;:=><";
 
     FRTOS_CMD_makeArgv();
 
-        // STACKS SIZE
+    // MODEM
+    // modem {prender|apagar|atmode|exitat}
+    if (!strcmp_P( strupr(argv[1]), PSTR("MODEM"))  ) {
+        if ( test_modem() ) {
+            pv_snprintfP_OK();
+        } else {
+            pv_snprintfP_ERR();
+        }
+        return;
+    }
+    
+    // STACKS SIZE
     if (!strcmp_P( strupr(argv[1]), PSTR("STACKS"))  ) {
         u_check_stacks_usage();
         pv_snprintfP_OK();
@@ -220,6 +234,8 @@ static void cmdHelpFunction(void)
         
     } else if (!strcmp_P( strupr(argv[1]), PSTR("TEST"))) {
 		xprintf_P( PSTR("-test\r\n"));  
+        xprintf_P( PSTR("  modem {prender|apagar|atmode|exitat|queryall|ids}\r\n"));
+        xprintf_P( PSTR("  modem set [apn {apn}, apiurl {apiurl}, server {ip,port}]\r\n"));
         
     }  else {
         // HELP GENERAL
@@ -294,6 +310,11 @@ fat_s l_fat;
     xprintf_P(PSTR(" date: %s\r\n"), RTC_logprint(FORMAT_LONG));
     xprintf_P(PSTR(" dlgid: %s\r\n"), systemConf.dlgid );
     xprintf_P(PSTR(" signature: %s\r\n"), NVMEE_read_serial() );
+    
+    xprintf_P(PSTR(" imei: %s\r\n"), MODEM_get_imei());
+    xprintf_P(PSTR(" iccid: %s\r\n"), MODEM_get_iccid());
+    xprintf_P(PSTR(" csq: %d\r\n"), MODEM_get_csq());
+    
     xprintf_P(PSTR(" timerdial=%d\r\n"), systemConf.timerdial);
     xprintf_P(PSTR(" timerpoll=%d\r\n"), systemConf.timerpoll);
     xprintf_P(PSTR(" samples=%d\r\n"), systemConf.samples_count);
@@ -676,5 +697,102 @@ static void pv_snprintfP_ERR(void)
 static void pv_snprintfP_OK(void )
 {
 	xprintf("ok\r\n\0");
+}
+//------------------------------------------------------------------------------
+static bool test_modem(void)
+{
+    
+bool retS = false;
+char *p;  
+uint8_t i;
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("WRITE"))  ) {
+        xfprintf_P( fdRS485A,PSTR("%s") , argv[3] );
+        //for (i=0; i<10;i++) {
+        //    xprintf_P(PSTR("[%c][0x%02x][0x%02x]\r\n"), logs[i][0],logs[i][1],logs[i][2]);
+        //}
+        retS=true;
+        goto exit;     
+    }
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("STATUS"))  ) {
+        xprintf_P(PSTR("ModemStatus = 0x%02x\r\n"), USARTE0.STATUS );
+        retS=true;
+        goto exit;     
+    }
+
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("READ"))  ) {
+        p = MODEM_get_buffer_ptr();
+        xprintf_P(PSTR("ModemRead-> %s\r\n"), p );
+        MODEM_flush_rx_buffer();
+        retS=true;
+        goto exit;     
+    }
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("IDS"))  ) {
+        MODEM_read_imei(true);
+        MODEM_read_iccid(true);
+        MODEM_read_csq(true);
+        retS=true;
+        goto exit;
+    }
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("PRENDER"))  ) {
+        MODEM_prender();
+        retS=true;
+        goto exit;
+    }
+        
+    if (!strcmp_P( strupr(argv[2]), PSTR("APAGAR"))  ) {
+        MODEM_apagar();
+        retS=true;
+        goto exit;
+    }
+        
+    if (!strcmp_P( strupr(argv[2]), PSTR("ATMODE"))  ) {
+        MODEM_enter_mode_at(true);
+        retS=true;
+        goto exit;
+    }
+
+    if (!strcmp_P( strupr(argv[2]), PSTR("EXITAT"))  ) {
+        MODEM_exit_mode_at(true);
+        retS=true;
+        goto exit;
+    }
+        
+    if (!strcmp_P( strupr(argv[2]), PSTR("QUERYALL"))  ) {
+        MODEM_query_parameters();
+        retS=true;
+        goto exit;
+    }
+
+    // SET
+    if (!strcmp_P( strupr(argv[2]), PSTR("SET"))  ) {
+        if (!strcmp_P( strupr(argv[3]), PSTR("APN"))  ) {
+            MODEM_set_apn(argv[4]);
+            retS=true;
+            goto exit;
+        }
+        
+        if (!strcmp_P( strupr(argv[3]), PSTR("SERVER"))  ) {
+            MODEM_set_server(argv[4], argv[5]);
+            retS=true;
+            goto exit;
+        }
+        
+        if (!strcmp_P( strupr(argv[3]), PSTR("APIURL"))  ) {
+            MODEM_set_apiurl(argv[4]);
+            retS=true;
+            goto exit;
+        }
+    
+    }
+    
+exit:
+            
+    return (retS);
+
 }
 //------------------------------------------------------------------------------

@@ -29,6 +29,9 @@
 #include "drv_i2c_spx.h"
 #include "drv_uart_spx.h"
 #include "drv_nvmee_spx.h"
+#include "util/delay.h"
+
+uint8_t logs[10][5];
 
 // Identificador de los file descriptor.
 typedef enum {

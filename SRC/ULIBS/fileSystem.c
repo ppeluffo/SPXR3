@@ -517,8 +517,9 @@ int16_t bytes_written = -1;
         return(false);
     }
     
-    if ( fs_debug )
+    if ( fs_debug ) {
         xprintf_P(PSTR("WR_ADDRESS=0x%04x, ptr=%d\r\n"), wrAddress, ptr);
+    }
     
 	bytes_written = EE_write( wrAddress, buff, FF_RECD_SIZE, fs_debug );
     // Necesito al memos tw=5ms entre escrituras.
@@ -565,8 +566,9 @@ bool retS = false;
         return(false);
     }
     
-    if ( fs_debug )
+    if ( fs_debug ) {
         xprintf_P(PSTR("RD_ADDRESS=0x%04x, ptr=%d\r\n"), rdAddress, ptr);
+    }
     
 	bytes_read = EE_read( rdAddress, buff, buff_size, fs_debug);
 	if (bytes_read == -1 ) {

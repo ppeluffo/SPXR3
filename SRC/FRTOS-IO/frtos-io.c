@@ -151,16 +151,43 @@ int16_t frtos_write_uart1( const char *pvBuffer, const uint16_t xBytes )
 //char *p = NULL;
 //int16_t wBytes = 0;
 uint16_t i;
-    
+   
     taskENTER_CRITICAL();
+
+    // Espero que DATA este libre para empezar
+ //   if (! USART_IsTXDataRegisterEmpty(&USARTE0) ) {
+ //       vTaskDelay( ( TickType_t)( 2 ) );
+ //   }
+    
     for( i = 0; i < xBytes; i++) {
+        
         while(! USART_IsTXDataRegisterEmpty(&USARTE0) )
             ;
+        // Transmito escribiendo el dato en el BUFFER (DATA)
         USART_PutChar(&USARTE0, pvBuffer[i]);
+         /* Espero que el buffer este vacio
+         * The transmit data register (DATA) can only be written when the data register empty flag (DREIF) 
+         * is set, indicating that the register is empty and ready for new data.
+         */        
+
+
     }
+    /*
+     * Al salir, DATA esta vacio, solo queda el ultimo byte en el SHIFT que es el que se
+     * esta transmitiendo.
+     * Espero que se vacie
+     *
+     * The transmit complete interrupt flag (TXCIF) is set and the optional interrupt 
+     * is generated when the entire frame in the shift register has been shifted out 
+     * and there are no new data present in the transmit buffer.
+     */  
     
+    //if (! USART_IsTXShiftRegisterEmpty(&USARTE0) ) {
+    //    vTaskDelay( ( TickType_t)( 1 ) );
+    //}
+    
+    vTaskDelay( ( TickType_t)( 4 ) );
     taskEXIT_CRITICAL();
-    vTaskDelay( ( TickType_t)( 1 ) );
     return(xBytes);
   
 

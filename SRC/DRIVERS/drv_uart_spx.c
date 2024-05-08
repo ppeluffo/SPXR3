@@ -9,6 +9,9 @@
 
 void drv_set_baudrate(uint32_t baudRate, uint8_t *baudA, uint8_t *baudB, uint8_t *ctl );
 
+char *uart1_ptr;
+int16_t uart1_xbytes;
+
 //------------------------------------------------------------------------------
 void drv_set_baudrate(uint32_t baudRate, uint8_t *baudA, uint8_t *baudB, uint8_t *ctl )
 {
@@ -149,4 +152,4 @@ char cChar;
 	cChar = USARTF0.DATA;
 	rBchar_PokeFromISR( &RXRB_uart2, cChar );
 }
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------

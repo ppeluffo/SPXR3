@@ -5,9 +5,6 @@ SemaphoreHandle_t sem_WAN;
 StaticSemaphore_t WAN_xMutexBuffer;
 #define MSTOTAKEWANSEMPH ((  TickType_t ) 10 )
 
-#define WAN_TX_BUFFER_SIZE 255
-uint8_t wan_tx_buffer[WAN_TX_BUFFER_SIZE];
-
 #define HASH_BUFFER_SIZE 64
 uint8_t hash_buffer[HASH_BUFFER_SIZE];
 
@@ -86,7 +83,7 @@ void tkWAN(void * pvParameters)
         vTaskDelay( ( TickType_t)( 100 / portTICK_PERIOD_MS ) );
 
     sem_WAN = xSemaphoreCreateMutexStatic( &WAN_xMutexBuffer );
-    lBchar_CreateStatic ( &wan_lbuffer, wan_buffer, WAN_RX_BUFFER_SIZE );
+    //lBchar_CreateStatic ( &wan_lbuffer, wan_buffer, WAN_RX_BUFFER_SIZE );
     
     xprintf_P(PSTR("Starting tkWAN..\r\n" ));
     vTaskDelay( ( TickType_t)( 500 / portTICK_PERIOD_MS ) );
@@ -244,7 +241,25 @@ static void wan_state_offline(void)
      * Este prende flags para indicar al resto que tipo de respuesta llego.
      */
  
+uint8_t i;
+
     xprintf_P(PSTR("WAN:: State OFFLINE\r\n"));
+    
+    // Leo el CSQ, IMEI, ICCID:
+    /*
+    for (i=0; i<3; i++) {
+        vTaskDelay( ( TickType_t)( 5000 / portTICK_PERIOD_MS ) );
+        if ( MODEM_enter_mode_at(false) ) {
+            MODEM_read_iccid(false);
+            MODEM_read_imei(false);
+            MODEM_read_csq(false);
+            //
+            MODEM_exit_mode_at(false);
+            break;
+        }
+        
+    }
+    */
     
     if ( ! wan_process_frame_linkup() ) {
         wan_state = WAN_APAGADO;
@@ -430,6 +445,9 @@ uint16_t pwr_off;
             return(MIXTO_OFF);
             break;
     } 
+    
+    // Default
+    return (DISCRETO);
 }
 //------------------------------------------------------------------------------
 static bool wan_process_frame_linkup(void)
@@ -556,7 +574,8 @@ char *delim = "&,;:=><";
 char *ts = NULL;
 char *p;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     
     vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
 	memset(localStr,'\0',sizeof(localStr));
@@ -652,7 +671,8 @@ char *ts = NULL;
 char *p;
 bool retS = false;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
+    //p = lBchar_get_buffer(&wan_lbuffer);
     
     if  ( strstr( p, "CONFIG=OK") != NULL ) {
         retS = true;
@@ -848,7 +868,8 @@ char str_base[8];
 char *p;
 bool retS = false;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     
     if  ( strstr( p, "CONFIG=OK") != NULL ) {
         retS = true;
@@ -977,7 +998,8 @@ char str_base[8];
 char *p;
 bool retS = false;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     
     if  ( strstr( p, "CONFIG=OK") != NULL ) {
        retS = true;
@@ -1108,7 +1130,8 @@ char str_base[8];
 char *p;
 bool retS = false;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     
     if  ( strstr( p, "CONFIG=OK") != NULL ) {
         retS = true;
@@ -1262,7 +1285,8 @@ char *ts = NULL;
 char *p;
 bool retS = false;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     
     if  ( strstr( p, "CONFIG=OK") != NULL ) {
         retS = true;
@@ -1480,7 +1504,8 @@ char *token = NULL;
 char *delim = "&,;:=><";
 char *p;
 
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
 
     vTaskDelay( ( TickType_t)( 10 / portTICK_PERIOD_MS ) );
     //xprintf_P(PSTR("WAN:: response\r\n") );
@@ -1535,13 +1560,13 @@ static void wan_xmit_out(bool debug_flag )
      * Transmite el buffer de tx por el puerto comms configurado para wan.
      */
     
-    // Antes de trasmitir siempre borramos el Rxbuffer
-    lBchar_Flush(&wan_lbuffer);
-    xfprintf_P( fdRS485A, PSTR("%s"), &wan_tx_buffer[0]);
-
-    if (f_debug_comms || debug_flag) {
-        xprintf_P( PSTR("Xmit-> %s\r\n"), &wan_tx_buffer[0]);
-    }
+    MODEM_flush_rx_buffer();
+    //xfprintf_P( fdWAN, PSTR("%s"), wan_tx_buffer); 
+    MODEM_txmit(&wan_tx_buffer);
+    
+    //if (f_debug_comms ) {
+        xprintf_P( PSTR("Xmit-> %s\r\n"), wan_tx_buffer);
+    //}
     
 }
 //------------------------------------------------------------------------------
@@ -1553,7 +1578,8 @@ static bool wan_check_response ( const char *s)
     
 char *p;
     
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
         
     if  ( strstr( p, "</html>") != NULL ) {
         
@@ -1573,7 +1599,8 @@ static void wan_print_RXbuffer(void)
 
 char *p;
             
-    p = lBchar_get_buffer(&wan_lbuffer);
+    //p = lBchar_get_buffer(&wan_lbuffer);
+    p = MODEM_get_buffer_ptr();
     //if (f_debug_comms) {
         xprintf_P(PSTR("Rcvd-> %s\r\n"), p );
     //}
@@ -1630,19 +1657,6 @@ fat_s l_fat;
     }
     return(retS);
 }
-//------------------------------------------------------------------------------
-void WAN_put(uint8_t c)
-{
-    /*
-     * Funcion usada por rutinas que manejan los RX de los diferentes comm ports
-     * para poner los datos recividos en la cola WAN cuando estos puertos se
-     * configuran para WAN
-     */
-    
-    lBchar_Put( &wan_lbuffer, c);
-   
-}
-//------------------------------------------------------------------------------
 void WAN_print_configuration(void)
 {
     
@@ -1669,13 +1683,13 @@ bool WAN_read_debug(void)
 //------------------------------------------------------------------------------
 void wan_PRENDER_MODEM(void)
 {
-    MODEM_PRENDER();
+    MODEM_prender();
     xprintf_P(PSTR("WAN:: PRENDER MODEM\r\n"));
 }
 //------------------------------------------------------------------------------
 void wan_APAGAR_MODEM(void)
 {
-    MODEM_APAGAR();
+    MODEM_apagar();
     xprintf_P(PSTR("WAN:: APAGAR MODEM\r\n"));
 }
 //------------------------------------------------------------------------------

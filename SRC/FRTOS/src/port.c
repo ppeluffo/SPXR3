@@ -36,7 +36,7 @@
 #define __XMEGA256A3__
 
 static volatile bool	countingCompleted;
-static void prvSleepExactTime( portTickType xExpectedIdleTime );
+//static void prvSleepExactTime( portTickType xExpectedIdleTime );
 static void prvSetupTimerInterrupt(void);
 
 //uint32_t sysTicks;

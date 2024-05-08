@@ -27,6 +27,8 @@
  * 3- Aumento el tamaño del buffer del hash en ainputs. Se aumenta a 64 bytes.
  * ----------------------------------------------------------------------------
  * 
+ * Version 1.2.0 @ 20240508
+ * 
  */
 
 #include "SPX_XMEGA.h"

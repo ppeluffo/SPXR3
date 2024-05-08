@@ -84,13 +84,15 @@ int16_t EE_read( uint16_t rdAddress, char *data, uint8_t length, bool debug )
 
 int16_t rcode = 0;
 
-    if (debug)
+    if (debug) {
         I2C_set_debug(0);
+    }
 
 	rcode =  I2C_read( fdI2C0, DEVADDRESS_EEPROM_M2402, rdAddress, 0x02, data, length );
 
-    if (debug)
+    if (debug) {
         I2C_clear_debug(0);
+    }
     
 	if ( rcode == -1 ) {
 		// Hubo error: trato de reparar el bus y reintentar la operacion
@@ -111,13 +113,15 @@ int16_t EE_write( uint16_t wrAddress, char *data, uint8_t length, bool debug )
 
 int16_t rcode = 0;
 
-    if (debug)
+    if (debug) {
         I2C_set_debug(0);
+    }
 
 	rcode =  I2C_write ( fdI2C0, DEVADDRESS_EEPROM_M2402, wrAddress, 0x02, data, length );
 
-    if (debug)
+    if (debug) {
         I2C_clear_debug(0);
+    }
     
 	if ( rcode == -1 ) {
 		// Hubo error: trato de reparar el bus y reintentar la operacion

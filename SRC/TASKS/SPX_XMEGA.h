@@ -1,12 +1,12 @@
 /* 
- * File:   spxR7.h
+ * File:   SPX_XMEGA.h
  * Author: pablo
  *
  * Created on August 23, 2023, 4:50 PM
  */
 
-#ifndef SPXR7_H
-#define	SPXR7_H
+#ifndef SPX_XMEGA_H
+#define SPX_XMEGA_H
 
 #ifdef	__cplusplus
 extern "C" {
@@ -20,14 +20,14 @@ extern "C" {
 #include <stdlib.h>
 #include <avr/interrupt.h>
 #include <compat/deprecated.h>
-#include <pgmspace.h>
+#include <avr/pgmspace.h>
 #include <stdarg.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <sleep.h>
+#include <avr/sleep.h>
 #include <avr_compiler.h>
 #include <clksys_driver.h>
 #include <pmic_driver.h>
@@ -59,6 +59,7 @@ extern "C" {
 #include "drv8814.h"
 #include "steppers.h"
 #include "valves.h"
+#include "modem_lte.h"
     
 #include "ainputs.h"
 #include "contadores.h"
@@ -68,9 +69,9 @@ extern "C" {
 //------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------
-#define FW_REV "1.1.1"
-#define FW_DATE "@ 20240403"
-#define HW_MODELO "SPXR3 FRTOS R001 HW:XMEGA256A3B"
+#define FW_REV "1.2.0"
+#define FW_DATE "@ 20240508"
+#define HW_MODELO "SPX_XMEGA FRTOS R001 HW:XMEGA256A3B"
 #define FRTOS_VERSION "FW:FreeRTOS V202111.00"
 #define FW_TYPE "SPX_XMEGA"
 
@@ -210,7 +211,6 @@ uint8_t confbase_hash(void);
 char wan_buffer[WAN_RX_BUFFER_SIZE];
 lBuffer_s wan_lbuffer;
 
-void WAN_put(uint8_t c);
 void WAN_print_configuration(void);
 void WAN_kill_task(void);
 bool WAN_process_data_rcd( dataRcd_s *dataRcd);
@@ -218,6 +218,8 @@ void WAN_config_debug(bool debug );
 bool WAN_sleeping(void);
 
 void kick_wdt( uint8_t bit_pos);
+
+uint8_t STATUS;
 
 uint8_t sys_watchdog;
 
